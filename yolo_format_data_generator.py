@@ -1,44 +1,67 @@
 import os
 import cv2
+import argparse
 import numpy as np
 import time
+from PyQt5 import QtWidgets,QtGui
 
-def __main__():
+parser = argparse.ArgumentParser(description='Open-source yolo format tool samepling')
+parser.add_argument('-c', '--class_name', type=str, help='name of the class')
+parser.add_argument('-o', '--output_dir', type=str, help='Path to output directory')
+parser.add_argument('-n', '--sampel_number', type=int, help='How many sampels of the selected class')
+parser.add_argument('-m', '--mode',default='0', type=int, help='append mode or new reg')
+parser.add_argument('-f', '--index_from',default='0', type=int, help='start indexing from')
+args = parser.parse_args()
+import time
+
+
+
+def __main__(output_dir,class_name,sampel_number,mode,index):
+
+    current_time = int(time.time())
+    if mode == 1:
+        append_dir = os.path.join(output_dir, 'img\\')
+        start_file_index = len(os.listdir(append_dir))
+    else:
+        start_file_index = 0
+
+
     boxes =[]
     path = os.getcwd()
-    add_dir = os.path.join(path,'capture\\Hand\\')
+    #add_dir = os.path.join(path,'capture\\Hand\\')
     cap = cv2.VideoCapture(0)
     frame_count = 0
     multiTracker = cv2.MultiTracker_create()
     thickness = 2
     font = cv2.FONT_HERSHEY_SIMPLEX
     i = 0
-    a = 100
-    # while True:
-    #     _,frame=cap.read()
-    #     cv2.imshow('a',frame)
-    #
-    #     cv2.waitKey(1000)
-    #     cv2.destroyAllWindows()
-    #     break
 
-    wr = open('dump.txt', 'w')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        os.makedirs(os.path.join(output_dir,'img\\'))
+        os.makedirs(os.path.join(output_dir,'text\\'))
+    img_dir  = os.path.join(output_dir,'img\\')
+    text_dir = os.path.join(output_dir,'text\\')
+
+    sampel_number+=index
+
     while cap.isOpened():
+        if sampel_number == index:
+            break
         ret,frame = cap.read()
-        #img = frame
+        frame = cv2.resize(frame, (416, 416))
+
+        img = frame.copy()
         frame_count= frame_count + 1
 
 
         width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
         height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
 
-        a-=1
+        sampel_number-=1
 
-        if frame_count<100:
-            #ret, frame = cap.read()
-            next
 
-        # one time
+
         if frame_count > 100 & frame_count < 120 and len(boxes) == 0:
             box = cv2.selectROI('MultiTracker', frame)
             boxes.append(box)
@@ -57,7 +80,6 @@ def __main__():
 
                 p1 = (int(newbox[0]), int(newbox[1]))
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
-                cv2.imwrite(os.path.join(add_dir, 'open_palm_{}.jpg'.format(a)), frame)
                 cv2.rectangle(frame, p1, p2,(0,255,0), thickness, 1)
 
                 absolute_x = (p1[0]+p2[0])/2
@@ -84,17 +106,38 @@ def __main__():
         absolute_height = 200 (original height of dog from image)
         absolute_width = 200 (original width of dog from image)
         '''
-        string = str('open_palm_{}.jpg {} {} {} {}\n'.format(a,X,Y,absolute_w,absolute_h))
 
+        string = str(' {} {} {} {} {}\n'.format(class_name, X, Y, absolute_w, absolute_h))
+        wr = open(os.path.join(text_dir,'{}_{}.txt'.format(current_time,sampel_number)), 'w')
+        #wr = open(os.path.join(text_dir, '{}.txt'.format(sampel_number)), 'w')
+        string = string.replace('\r',' ')
         wr.write(string)
-        #print('open_palm_{}.jpg'.format(a),X,Y,absolute_w,absolute_h)
 
+
+        cv2.imwrite(os.path.join(img_dir, '{}_{}.jpg'.format(current_time,sampel_number)), img)
+        #cv2.imwrite(os.path.join(img_dir, '{}.jpg'.format(sampel_number)), img)
+
+        if sampel_number == 0:
+            exit()
 
         if cv2.waitKey(1) == ord('q'):
             break
     cv2.destroyAllWindows()
     cap.release()
 
-
+def get_last_index_from_dir(directory):
+    if len(os.listdir(directory)):
+        print('files here')
+    else:
+        print('no files here')
+     #    file_list = os.listdir(directory)
+     # = file_list
 if __name__ == '__main__':
-    __main__()
+
+    OUTPUT_DIR = args.output_dir
+    CLASS_NAME = args.class_name
+    SAMPEL_NUMBER = args.sampel_number
+    MODE = args.mode
+    INDEX = args.index_from
+
+    __main__(OUTPUT_DIR,CLASS_NAME,SAMPEL_NUMBER,MODE,INDEX)
