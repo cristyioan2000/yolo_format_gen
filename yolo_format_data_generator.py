@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description='Open-source yolo format tool samep
 parser.add_argument('-c', '--class_name', type=str, help='name of the class')
 parser.add_argument('-o', '--output_dir', type=str, help='Path to output directory')
 parser.add_argument('-n', '--sampel_number', type=int, help='How many sampels of the selected class')
-parser.add_argument('-m', '--mode',default='0', type=int, help='append mode or new reg')
+parser.add_argument('-m', '--mode',default='0', type=int, help='normal\\negative')
 parser.add_argument('-f', '--index_from',default='0', type=int, help='start indexing from')
 args = parser.parse_args()
 import time
@@ -20,9 +20,7 @@ def __main__(output_dir,class_name,sampel_number,mode,index):
 
     current_time = int(time.time())
     if mode == 1:
-        append_dir = os.path.join(output_dir, 'img\\')
-        start_file_index = len(os.listdir(append_dir))
-    else:
+
         start_file_index = 0
 
 
@@ -36,27 +34,33 @@ def __main__(output_dir,class_name,sampel_number,mode,index):
     font = cv2.FONT_HERSHEY_SIMPLEX
     i = 0
 
+    # if not os.path.exists(output_dir):
+    #     os.makedirs(output_dir)
+    #     os.makedirs(os.path.join(output_dir,'img\\'))
+    #     os.makedirs(os.path.join(output_dir,'text\\'))
+    # img_dir  = os.path.join(output_dir,'img\\')
+    # text_dir = os.path.join(output_dir,'text\\')
+    img_dir = output_dir
+    text_dir = output_dir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-        os.makedirs(os.path.join(output_dir,'img\\'))
-        os.makedirs(os.path.join(output_dir,'text\\'))
-    img_dir  = os.path.join(output_dir,'img\\')
-    text_dir = os.path.join(output_dir,'text\\')
 
     sampel_number+=index
-
+    width = 416
+    height = 416
     while cap.isOpened():
         if sampel_number == index:
             break
         ret,frame = cap.read()
-        frame = cv2.resize(frame, (416, 416))
+        frame = cv2.resize(frame, (width, height))
 
-        img = frame.copy()
+        # img = frame.copy()
+        img = frame
         frame_count= frame_count + 1
 
 
-        width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
-        height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
+        #width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
+        #height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
 
         sampel_number-=1
 
@@ -77,23 +81,22 @@ def __main__(output_dir,class_name,sampel_number,mode,index):
                 coord = map(int,newbox)
                 x,y,w,h = coord
 
-
                 p1 = (int(newbox[0]), int(newbox[1]))
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
                 cv2.rectangle(frame, p1, p2,(0,255,0), thickness, 1)
 
-                absolute_x = (p1[0]+p2[0])/2
-                X = absolute_x/width
+                absolute_x = (p1[0]+p2[0])/float(2*width)
+                X = absolute_x#/width
 
-                absolute_y = (p1[1]+p2[1])/2
-                Y = absolute_y / height
 
-                absolute_w = (w/width)
-                absolute_h = (h/height)
+                absolute_y = (p1[1]+p2[1])/float(2*height)
+                Y = absolute_y #/ height
 
+                absolute_w = float(abs(p2[0] - p1[0]))/width
+                absolute_h = float(abs(p2[1] - p1[1])) / height
+
+        cv2.putText(frame, str(sampel_number), (80, 120), cv2.FONT_HERSHEY_SIMPLEX, 4.0, (0, 255, 0), lineType=cv2.LINE_AA)
         cv2.imshow('window', frame)
-
-
         '''
         < class_number > (< absolute_x > / < image_width >)( < absolute_y > / < image_height >) (
                     < absolute_width > / < image_width >)( < absolute_height > / < image_height >)
@@ -108,13 +111,15 @@ def __main__(output_dir,class_name,sampel_number,mode,index):
         '''
 
         string = str(' {} {} {} {} {}\n'.format(class_name, X, Y, absolute_w, absolute_h))
-        wr = open(os.path.join(text_dir,'{}_{}.txt'.format(current_time,sampel_number)), 'w')
+        if mode == 1:
+           string=''
+        wr = open(os.path.join(text_dir,'{}{}.txt'.format(current_time,sampel_number)), 'w')
         #wr = open(os.path.join(text_dir, '{}.txt'.format(sampel_number)), 'w')
         string = string.replace('\r',' ')
         wr.write(string)
 
 
-        cv2.imwrite(os.path.join(img_dir, '{}_{}.jpg'.format(current_time,sampel_number)), img)
+        cv2.imwrite(os.path.join(img_dir, '{}{}.jpg'.format(current_time,sampel_number)), img)
         #cv2.imwrite(os.path.join(img_dir, '{}.jpg'.format(sampel_number)), img)
 
         if sampel_number == 0:
