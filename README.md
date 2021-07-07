@@ -5,4 +5,4 @@
 
 *Tips. Try CLF TRacker, it works better than MIL TRACKER. And check the way that the labels are calculated, it might be an old version that the calculus isn't working well.
 
-*Download an adnotation tool and compare the results.
+*Download an annotation tool and compare the results.
